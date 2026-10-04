@@ -1,0 +1,42 @@
+# ============================================================
+# Syslog Log Analyzer Configuration
+# ============================================================
+
+# Directory where reports (JSON + HTML) are written
+output_dir: /reports
+
+# Output formats to generate: json, html (or both)
+output_formats:
+  - json
+  - html
+
+# Glob pattern used when scanning a directory with --dir
+file_pattern: "*.log"
+
+# How many entries to process between progress log lines
+batch_size: 10000
+
+# ---- Live UDP Syslog Server (--listen mode) ----------------
+server:
+  host: "0.0.0.0"
+  port: 514
+  protocol: udp   # only udp is currently supported
+
+# ---- Alert Rules -------------------------------------------
+# The analyzer will exit with code 2 if any rule is breached.
+alert_rules:
+  # Max number of ERROR/CRITICAL/ALERT/EMERGENCY entries allowed
+  max_errors: 100
+
+  # Max number of WARNING entries allowed
+  max_warnings: 500
+
+  # Percentage of unparseable lines that triggers an alert
+  max_unparseable_pct: 10
+
+  # Alert if a single host produces more than this many entries
+  host_burst_threshold: 1000
+
+# ---- Logging -----------------------------------------------
+logging:
+  level: INFO    # DEBUG | INFO | WARNING | ERROR

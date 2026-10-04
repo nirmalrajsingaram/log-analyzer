@@ -1,0 +1,80 @@
+version: "3.9"
+
+# ============================================================
+# Syslog Log Analyzer — Docker Compose
+#
+# Profiles:
+#   file    — analyze a mounted log file (default)
+#   stdin   — pipe a file into the container
+#   listen  — run a live UDP syslog listener on port 514
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # file-mode: mount a log file and analyze it
+  # Usage: docker compose --profile file up
+  # ----------------------------------------------------------
+  log-analyzer-file:
+    profiles: ["file"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: log-analyzer:latest
+    container_name: log-analyzer-file
+    restart: "no"
+    volumes:
+      # Mount the directory that contains your syslog files
+      - ./logs:/logs:ro
+      # Persist reports on the host
+      - ./reports:/reports
+      # Override config if needed
+      - ./config/config.yaml:/config/config.yaml:ro
+    environment:
+      CONFIG_PATH: /config/config.yaml
+    command: ["--dir", "/logs", "--pattern", "*.log"]
+
+  # ----------------------------------------------------------
+  # listen-mode: receive live syslog over UDP on port 514
+  # Usage: docker compose --profile listen up
+  # ----------------------------------------------------------
+  log-analyzer-listen:
+    profiles: ["listen"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: log-analyzer:latest
+    container_name: log-analyzer-listen
+    restart: unless-stopped
+    ports:
+      # Expose UDP 514 for syslog ingestion
+      - "514:514/udp"
+    volumes:
+      - ./reports:/reports
+      - ./config/config.yaml:/config/config.yaml:ro
+    environment:
+      CONFIG_PATH: /config/config.yaml
+    command: ["--listen", "--port", "514"]
+
+  # ----------------------------------------------------------
+  # stdin-mode: pipe a file into the container
+  # Usage: docker compose --profile stdin run --rm log-analyzer-stdin < /var/log/syslog
+  # ----------------------------------------------------------
+  log-analyzer-stdin:
+    profiles: ["stdin"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: log-analyzer:latest
+    container_name: log-analyzer-stdin
+    restart: "no"
+    stdin_open: true
+    volumes:
+      - ./reports:/reports
+      - ./config/config.yaml:/config/config.yaml:ro
+    environment:
+      CONFIG_PATH: /config/config.yaml
+    command: ["--stdin"]
